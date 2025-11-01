@@ -47,10 +47,10 @@ function setupSocketHandlers(io) {
         );
 
         console.log('--- DEBUG: GEMINI RESPONSE CHECK ---');
-        console.log(`Response length: ${botResponse ? botResponse.length : 0}`);
-        console.log(`Response content (first 50 chars): "${botResponse ? botResponse.substring(0, 50) : '[EMPTY/NULL]'}"`);
-        
-        let finalBotContent = botResponse;
+        console.log(`Response length: ${botResponse ? botResponse.length : 0}`);
+        console.log(`Response content (first 50 chars): "${botResponse ? botResponse.substring(0, 50) : '[EMPTY/NULL]'}"`);
+        
+        let finalBotContent = botResponse;
         console.log('------------------------------------');
         
         // Add bot response to history

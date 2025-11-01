@@ -83,25 +83,50 @@ Please provide a helpful answer:`;
             console.log(`📝 Prompt length: ${prompt.length} characters`);
             
             // Generate content
-            console.log('⚡ Starting streamed generation...');
-            const stream = await this.model.generateContentStream(prompt);
-
-            let fullText = '';
-            for await (const chunk of stream.stream) {
-                const chunkText = chunk.text();
-                if (chunkText) {
-                    fullText += chunkText;
-
-                    // ✨ Send partial text to frontend in real-time
-                    if (this.currentSocket) {
-                        this.currentSocket.emit('stream_update', { text: fullText });
-                    }
+            const result = await this.model.generateContent(prompt);
+            const response = await result.response;
+            
+            // Debug: Log the full response structure
+            console.log('🔍 Full response structure:', JSON.stringify({
+                hasCandidates: !!result.response.candidates,
+                candidateCount: result.response.candidates?.length,
+                firstCandidate: result.response.candidates?.[0] ? {
+                    finishReason: result.response.candidates[0].finishReason,
+                    hasContent: !!result.response.candidates[0].content,
+                    contentParts: result.response.candidates[0].content?.parts?.length
+                } : 'No candidate'
+            }, null, 2));
+            
+            // Check for safety blocking or other issues
+            if (result.response.candidates && result.response.candidates[0]) {
+                const candidate = result.response.candidates[0];
+                const finishReason = candidate.finishReason;
+                
+                console.log(`🔍 Finish Reason: ${finishReason}`);
+                
+                if (finishReason === 'SAFETY') {
+                    console.warn('❌ Response blocked by safety filters');
+                    return this.getFallbackResponse(query, context, 'Response was blocked by safety filters.');
+                }
+                
+                if (finishReason === 'OTHER' || finishReason === 'RECITATION') {
+                    console.warn(`⚠️ Response finished with reason: ${finishReason}`);
                 }
             }
-
-            console.log('✅ Streaming complete');
-            return fullText;
-
+            
+            // Extract text safely - use the correct method
+            const responseText = response.text();
+            
+            console.log(`📝 Raw response text: "${responseText}"`);
+            console.log(`📝 Response text length: ${responseText.length}`);
+            
+            if (!responseText || responseText.trim() === '') {
+                console.warn('⚠️ Empty response received from Gemini');
+                return this.getFallbackResponse(query, context, 'Received empty response from AI service.');
+            }
+            
+            console.log('✅ Response generated successfully');
+            return responseText;
             
         } catch (error) {
             console.error('❌ Gemini error:', error);
